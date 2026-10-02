@@ -1,4 +1,4 @@
-const CACHE = "stxcl-directory-v1";
+const CACHE = "stxcl-directory-v2";
 
 self.addEventListener("install", function(event) {
   self.skipWaiting();
@@ -17,14 +17,57 @@ self.addEventListener("install", function(event) {
 
 self.addEventListener("activate", function(event) {
   event.waitUntil(
-    self.clients.claim()
+    caches.keys().then(function(cacheNames) {
+      return Promise.all(
+        cacheNames
+          .filter(function(name) {
+            return name !== CACHE;
+          })
+          .map(function(name) {
+            return caches.delete(name);
+          })
+      );
+    }).then(function() {
+      return self.clients.claim();
+    })
   );
 });
 
 self.addEventListener("fetch", function(event) {
+
+  const url = new URL(event.request.url);
+
+  if (url.pathname.endsWith("/directory.json")) {
+
+    event.respondWith(
+      fetch(event.request, {
+        cache: "no-store"
+      })
+        .then(function(response) {
+
+          const copy = response.clone();
+
+          caches.open(CACHE).then(function(cache) {
+            cache.put(event.request, copy);
+          });
+
+          return response;
+
+        })
+        .catch(function() {
+
+          return caches.match("./directory.json");
+
+        })
+    );
+
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then(function(cached) {
       return cached || fetch(event.request);
     })
   );
+
 });
