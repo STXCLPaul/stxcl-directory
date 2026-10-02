@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.json">
+
+<title>STXCL Contact Directory</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  color: #222;
+}
+
+.card {
+  background: #fff;
+  width: 100%;
+  max-width: 600px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+h1 {
+  text-align: center;
+  margin: 8px 0 20px;
+  font-size: 24px;
+}
+
+label {
+  font-weight: bold;
+  display: block;
+  margin: 6px 0 3px;
+}
+
+select {
+  width: 100%;
+  padding: 10px;
+  font-size: 18px;
+  margin: 3px 0 8px;
+  border-radius: 6px;
+}
+
+.contact-card {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f8f8f8;
+  border-radius: 8px;
+  line-height: 1.5;
+  font-size: 18px;
+}
+
+.contact-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+#status {
+  text-align: center;
+  padding: 30px 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <h1>⚽ STXCL Contact Directory</h1>
+
+  <div id="status">
+    Loading directory...
+  </div>
+
+  <div id="app" hidden>
+
+    <label>Competition</label>
+    <select id="competition"></select>
+
+    <label>Age Group</label>
+    <select id="age"></select>
+
+    <label>Club</label>
+    <select id="club"></select>
+
+    <label>Team</label>
+    <select id="team"></select>
+
+    <div id="contactInfo"></div>
+
+  </div>
+
+</div>
+
+<script>
+
+let data = [];
+
+function uniqueSorted(array) {
+  return [...new Set(
+    array
+      .filter(Boolean)
+      .map(String)
+  )].sort();
+}
+
+function setOptions(id, placeholder, values = []) {
+
+  const select = document.getElementById(id);
+
+  select.innerHTML = "";
+
+  const first = new Option(placeholder, "");
+
+  select.add(first);
+
+  values.forEach(function(value) {
+
+    select.add(
+      new Option(value, value)
+    );
+
+  });
+}
+
+function escapeHtml(value) {
+
+  return String(value ?? "")
+    .replace(/[&<>"']/g, function(character) {
+
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[character];
+
+    });
+
+}
+
+
+/* Competition */
+
+document
+  .getElementById("competition")
+  .addEventListener("change", function() {
+
+    const competition = this.value;
+
+    setOptions(
+      "age",
+      "Select Age Group",
+      uniqueSorted(
+        data
+          .filter(row => row.league === competition)
+          .map(row => row.age)
+      )
+    );
+
+    setOptions(
+      "club",
+      "Select Age Group First"
+    );
+
+    setOptions(
+      "team",
+      "Select Club First"
+    );
+
+    document.getElementById("contactInfo").innerHTML = "";
+
+  });
+
+
+/* Age */
+
+document
+  .getElementById("age")
+  .addEventListener("change", function() {
+
+    const competition =
+      document.getElementById("competition").value;
+
+    const age = this.value;
+
+    setOptions(
+      "club",
+      "Select Club",
+      uniqueSorted(
+        data
+          .filter(row =>
+            row.league === competition &&
+            row.age === age
+          )
+          .map(row => row.club)
+      )
+    );
+
+    setOptions(
+      "team",
+      "Select Club First"
+    );
+
+    document.getElementById("contactInfo").innerHTML = "";
+
+  });
+
+
+/* Club */
+
+document
+  .getElementById("club")
+  .addEventListener("change", function() {
+
+    const competition =
+      document.getElementById("competition").value;
+
+    const age =
+      document.getElementById("age").value;
+
+    const club = this.value;
+
+    setOptions(
+      "team",
+      "Select Team",
+      uniqueSorted(
+        data
+          .filter(row =>
+            row.league === competition &&
+            row.age === age &&
+            row.club === club
+          )
+          .map(row => row.team)
+      )
+    );
+
+    document.getElementById("contactInfo").innerHTML = "";
+
+  });
+
+
+/* Team */
+
+document
+  .getElementById("team")
+  .addEventListener("change", function() {
+
+    const competition =
+      document.getElementById("competition").value;
+
+    const age =
+      document.getElementById("age").value;
+
+    const club =
+      document.getElementById("club").value;
+
+    const team = this.value;
+
+    const record = data.find(function(row) {
+
+      return (
+        row.league === competition &&
+        row.age === age &&
+        row.club === club &&
+        row.team === team
+      );
+
+    });
+
+    if (!record) {
+      return;
+    }
+
+    document.getElementById("contactInfo").innerHTML =
+
+      '<div class="contact-card">' +
+
+      '<div class="contact-title">' +
+      escapeHtml(team) +
+      '</div>' +
+
+      '<b>Head Coach:</b><br>' +
+      escapeHtml(record.headCoach) +
+      '<br>' +
+
+      (
+        record.coachEmail
+          ?
+          '<a href="mailto:' +
+          encodeURIComponent(record.coachEmail) +
+          '">' +
+          escapeHtml(record.coachEmail) +
+          '</a><br>'
+          :
+          ''
+      ) +
+
+      (
+        record.coachPhone
+          ?
+          '<a href="tel:' +
+          encodeURIComponent(record.coachPhone) +
+          '">' +
+          escapeHtml(record.coachPhone) +
+          '</a>'
+          :
+          ''
+      ) +
+
+      '<br><br>' +
+
+      '<b>Manager:</b><br>' +
+      escapeHtml(record.manager) +
+      '<br>' +
+
+      (
+        record.managerEmail
+          ?
+          '<a href="mailto:' +
+          encodeURIComponent(record.managerEmail) +
+          '">' +
+          escapeHtml(record.managerEmail) +
+          '</a><br>'
+          :
+          ''
+      ) +
+
+      (
+        record.managerPhone
+          ?
+          '<a href="tel:' +
+          encodeURIComponent(record.managerPhone) +
+          '">' +
+          escapeHtml(record.managerPhone) +
+          '</a>'
+          :
+          ''
+      ) +
+
+      '</div>';
+
+  });
+
+
+/* Load directory */
+
+fetch("directory.json")
+
+  .then(function(response) {
+
+    if (!response.ok) {
+      throw new Error("directory.json could not be loaded");
+    }
+
+    return response.json();
+
+  })
+
+  .then(function(records) {
+
+    data = records;
+
+    document.getElementById("status").hidden = true;
+
+    document.getElementById("app").hidden = false;
+
+    setOptions(
+      "competition",
+      "Select Competition",
+      uniqueSorted(
+        data.map(row => row.league)
+      )
+    );
+
+    setOptions(
+      "age",
+      "Select Competition First"
+    );
+
+    setOptions(
+      "club",
+      "Select Age Group First"
+    );
+
+    setOptions(
+      "team",
+      "Select Club First"
+    );
+
+  })
+
+  .catch(function(error) {
+
+    document.getElementById("status").innerHTML =
+      "<b>Unable to load the directory.</b><br><br>" +
+      "directory.json could not be loaded.";
+
+    console.error(error);
+
+  });
+
+
+/* PWA service worker */
+
+if ("serviceWorker" in navigator) {
+
+  window.addEventListener("load", function() {
+
+    navigator.serviceWorker.register("sw.js");
+
+  });
+
+}
+
+</script>
+
+</body>
+</html>
